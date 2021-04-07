@@ -1,19 +1,19 @@
 #!/bin/bash
 function help
 {
-	echo "HELP:
-	Script that modifies file/directory names.
+  echo "HELP:
+  Script that modifies file/directory names.
 
-	OPTIONS:
-	-r 		:		Make changes recursively, optional.
-	[-l | -u]	:		-l lowerizes the file names, -u makes them uppercase.
-	-h 		:		Displays this help message.
+  OPTIONS:
+  -r    :   Make changes recursively, optional.
+  [-l | -u] :   -l lowerizes the file names, -u makes them uppercase.
+  -h    :   Displays this help message.
 
-	USES:
-	modify [-r] [-l|-u] <dir/file names...>
-	modify [-r] <sed pattern> <dir/file names...>
-	modify [-h]
- 	"
+  USES:
+  modify [-r] [-l|-u] <dir/file names...>
+  modify [-r] <sed pattern> <dir/file names...>
+  modify [-h]
+  "
 }
 
 
@@ -22,27 +22,30 @@ function help
 
 function changeName
 {
+  # Changes a name of the file depending on the given parameter (u or l)
   old_path=$(dirname "$1")/$(basename "$1");
-  if [[ ${param[1]} == u ]]; then
+  if [[ ${param[1]} == u ]]; then # if the parameter is 'u', then we uppercase it
     change_base=`echo $(basename "$1") |tr '[:lower:]' '[:upper:]'`;
-  else
+  else # if the parameter is 'l' we lowerize it
     change_base=`echo $(basename "$1") |tr '[:upper:]' '[:lower:]'`;
   fi
-  new_path=$(dirname "$1")/$change_base;
-  #change name
-  mv -f "$old_path" "$new_path";
+  new_path=$(dirname "$1")/$change_base; # concat path to the new file name
+  
+  mv -f "$old_path" "$new_path"; #change name
 }
 
 function changeAllNames #$1 -> path
 { 
+  # Changes the names of all of the files in the given directory
   echo "Changing names for path: $1";
-  find $1 -maxdepth 1 -type f |while read i; do
+  find $1 -maxdepth 1 -type f |while read i; do # looping over the files in the given directory
     changeName "$i";
   done
 }
 
 function changeAllNamesRecursion 
 {
+  # Changes the names of all the files in the given directory recursively
     echo "Changing names with recursion for path: $1";
     find $1 -type f |while read i; do
         changeName "$i";
@@ -51,17 +54,19 @@ function changeAllNamesRecursion
 
 function changeAllSedNames 
 {
+  # Applies the sed pattern to all the files in the given directory
     echo "Changing names with sed pattern for path: $1";
-    find $1 -maxdepth 1 -type f |while read i; do
-        sed -s $2;
+    find $1 -maxdepth 1 -type f |while read i; do # only goes to maxdepth 1
+        mv "$i" "`echo $i | sed $2`"; # applies sed pattern to file and renames it using mv
     done
 }
 
 function changeAllSedNamesWithRecursion 
 {
+  # Applies the sed pattern to all the files in the given directory recursively
     echo "Changing names with sed using recursion for path: $1";
     find $1 -type f |while read i; do
-        sed -s $2;
+        mv "$i" "`echo $i | sed $2`";
     done
 }
 
@@ -69,14 +74,14 @@ function changeAllSedNamesWithRecursion
 
 function normalCase
 {
-	if [[ ${#args[*]} == 0 ]]; then
-    #option and no argumetns
+  # function for non-sed pattern case (-l or -u used), non-recursive
+  if [[ ${#args[*]} == 0 ]]; then #option and no arguments, change name of all files in current directory
     changeAllNames $PWD; 
   else
-    if test "${args[0]+isset}" ; then
+    if test "${args[0]+isset}" ; then # Checks whether the path was provided
       changeAllNames ${args[0]};
     else
-      echo "ERROR. No path provided.";
+      echo "ERROR: No path provided.";
       exit;
     fi
   fi
@@ -84,42 +89,47 @@ function normalCase
 
 function normalCaseRecursion
 {
-	if [[ ${#args[*]} == 0 ]]; then
+  # Same as normalCase but recursive
+  if [[ ${#args[*]} == 0 ]]; then
         changeAllNamesRecursion $PWD;
     else
         if test "${args[0]+isset}"; then
             changeAllNamesRecursion ${args[0]};
         else
-            echo "ERROR --> give path not sed";
+            echo "ERROR: give path not sed";
             exit;
         fi
-    fi	
+    fi  
 }
 
 function sedCase 
 {
-    if [[ ${#args[*]} == 0 ]]; then
+
+  # function for sed patter case, non-recursive
+    if [[ ${#args[*]} == 0 ]]; then # Checks whether there  are any arguments provided, if not prints an error msg
         echo "There is no parameters and no arguments";
         exit;
     fi 
 
-    if [[ ${#args[*]} == 1 ]]; then
-        if test "${args[1]+isset}"; then
+    if [[ ${#args[*]} == 1 ]]; then # checks if there is only 1 parameter (sed pattern)
+        if test "${args[1]+isset}"; then # Applied sed pattern for all files in current directory since path was not provided
             echo "Should perform sed pattern in current dir: ${args[*]}";
             changeAllSedNames $PWD ${args[1]};
         else 
-            echo "ERROR --> give sed pattern not ${args[0]}";
+            echo "ERROR: give sed pattern not ${args[0]}";
             exit;
         fi
     fi
 
-    if [[ ${#args[*]} == 2 ]]; then 
+    if [[ ${#args[*]} == 2 ]]; then # if there are two arguments, applies given sed pattern to given dir
         changeAllSedNames ${args[0]} ${args[1]};
     fi   
 }
 
 function sedCaseRecursion 
-{ #no parameters
+{ 
+  # Same as sedCase but recursive
+#no parameters
   if [[ ${#args[*]} == 0 ]]; then
     echo "There is no parameters and no arguments";
     exit;
@@ -129,7 +139,7 @@ function sedCaseRecursion
     if test "${args[1]+isset}" ; then
       changeAllSedNamesWithRecursion $PWD ${args[1]};
     else
-      echo "ERROR --> give sed pattern not ${args[0]}";
+      echo "ERROR: give sed pattern not ${args[0]}";
       exit;
     fi
   fi
@@ -141,8 +151,9 @@ function sedCaseRecursion
 #<---------- GET ARGUMENTS ---------->
 
 function getArgs {
-    for (( i=0; i<${#all_args[*]}; i++ )); do
-        if [ ${all_args[i]} != '-r' ] && [ ${all_args[i]} != '-u' ] && [ ${all_args[i]} != '-l' ]; then
+  # Function reads all arguments, recognizes sed patterns and filepaths in a readable for me manner
+    for (( i=0; i<${#all_args[*]}; i++ )); do # loops through all_args to read all args
+        if [ ${all_args[i]} != '-r' ] && [ ${all_args[i]} != '-u' ] && [ ${all_args[i]} != '-l' ]; then # disregards -r -u and -l
             if [ -f ${all_args[i]} ] || [ -d ${all_args[i]} ]; then #if its file or dir
                 args[0]=${all_args[i]}; #storing path
             elif [[ -n ${all_args[i]} ]]; then
