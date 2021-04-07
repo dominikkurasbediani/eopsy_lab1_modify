@@ -1,19 +1,19 @@
 #!/bin/bash
 function help
 {
-	echo "HELP:
-	Script that modifies file/directory names.
+  echo "HELP:
+  Script that modifies file/directory names.
 
-	OPTIONS:
-	-r 		:		Make changes recursively, optional.
-	[-l | -u]	:		-l lowerizes the file names, -u makes them uppercase.
-	-h 		:		Displays this help message.
+  OPTIONS:
+  -r    :   Make changes recursively, optional.
+  [-l | -u] :   -l lowerizes the file names, -u makes them uppercase.
+  -h    :   Displays this help message.
 
-	USES:
-	modify [-r] [-l|-u] <dir/file names...>
-	modify [-r] <sed pattern> <dir/file names...>
-	modify [-h]
- 	"
+  USES:
+  modify [-r] [-l|-u] <dir/file names...>
+  modify [-r] <sed pattern> <dir/file names...>
+  modify [-h]
+  "
 }
 
 
@@ -53,7 +53,7 @@ function changeAllSedNames
 {
     echo "Changing names with sed pattern for path: $1";
     find $1 -maxdepth 1 -type f |while read i; do
-        sed -s $2;
+        mv "$i" "`echo $i | sed $2`";
     done
 }
 
@@ -61,7 +61,7 @@ function changeAllSedNamesWithRecursion
 {
     echo "Changing names with sed using recursion for path: $1";
     find $1 -type f |while read i; do
-        sed -s $2;
+        mv "$i" "`echo $i | sed $2`";
     done
 }
 
@@ -69,7 +69,7 @@ function changeAllSedNamesWithRecursion
 
 function normalCase
 {
-	if [[ ${#args[*]} == 0 ]]; then
+  if [[ ${#args[*]} == 0 ]]; then
     #option and no argumetns
     changeAllNames $PWD; 
   else
@@ -84,7 +84,7 @@ function normalCase
 
 function normalCaseRecursion
 {
-	if [[ ${#args[*]} == 0 ]]; then
+  if [[ ${#args[*]} == 0 ]]; then
         changeAllNamesRecursion $PWD;
     else
         if test "${args[0]+isset}"; then
@@ -93,7 +93,7 @@ function normalCaseRecursion
             echo "ERROR --> give path not sed";
             exit;
         fi
-    fi	
+    fi  
 }
 
 function sedCase 
