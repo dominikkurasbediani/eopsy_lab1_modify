@@ -1,0 +1,201 @@
+#!/bin/bash
+function help
+{
+	echo "HELP:
+	Script that modifies file/directory names.
+
+	OPTIONS:
+	-r 		:		Make changes recursively, optional.
+	[-l | -u]	:		-l lowerizes the file names, -u makes them uppercase.
+	-h 		:		Displays this help message.
+
+	USES:
+	modify [-r] [-l|-u] <dir/file names...>
+	modify [-r] <sed pattern> <dir/file names...>
+	modify [-h]
+ 	"
+}
+
+
+
+#<----- Name Change Functions ----->
+
+function changeName
+{
+  old_path=$(dirname "$1")/$(basename "$1");
+  if [[ ${param[1]} == u ]]; then
+    change_base=`echo $(basename "$1") |tr '[:lower:]' '[:upper:]'`;
+  else
+    change_base=`echo $(basename "$1") |tr '[:upper:]' '[:lower:]'`;
+  fi
+  new_path=$(dirname "$1")/$change_base;
+  #change name
+  mv -f "$old_path" "$new_path";
+}
+
+function changeAllNames #$1 -> path
+{ 
+  echo "Changing names for path: $1";
+  find $1 -maxdepth 1 -type f |while read i; do
+    changeName "$i";
+  done
+}
+
+function changeAllNamesRecursion 
+{
+    echo "Changing names with recursion for path: $1";
+    find $1 -type f |while read i; do
+        changeName "$i";
+    done
+}
+
+function changeAllSedNames 
+{
+    echo "Changing names with sed pattern for path: $1";
+    find $1 -maxdepth 1 -type f |while read i; do
+        sed -s $2;
+    done
+}
+
+function changeAllSedNamesWithRecursion 
+{
+    echo "Changing names with sed using recursion for path: $1";
+    find $1 -type f |while read i; do
+        sed -s $2;
+    done
+}
+
+#<----------EXECUTION---------->
+
+function normalCase
+{
+	if [[ ${#args[*]} == 0 ]]; then
+    #option and no argumetns
+    changeAllNames $PWD; 
+  else
+    if test "${args[0]+isset}" ; then
+      changeAllNames ${args[0]};
+    else
+      echo "ERROR. No path provided.";
+      exit;
+    fi
+  fi
+}
+
+function normalCaseRecursion
+{
+	if [[ ${#args[*]} == 0 ]]; then
+        changeAllNamesRecursion $PWD;
+    else
+        if test "${args[0]+isset}"; then
+            changeAllNamesRecursion ${args[0]};
+        else
+            echo "ERROR --> give path not sed";
+            exit;
+        fi
+    fi	
+}
+
+function sedCase 
+{
+    if [[ ${#args[*]} == 0 ]]; then
+        echo "There is no parameters and no arguments";
+        exit;
+    fi 
+
+    if [[ ${#args[*]} == 1 ]]; then
+        if test "${args[1]+isset}"; then
+            echo "Should perform sed pattern in current dir: ${args[*]}";
+            changeAllSedNames $PWD ${args[1]};
+        else 
+            echo "ERROR --> give sed pattern not ${args[0]}";
+            exit;
+        fi
+    fi
+
+    if [[ ${#args[*]} == 2 ]]; then 
+        changeAllSedNames ${args[0]} ${args[1]};
+    fi   
+}
+
+function sedCaseRecursion 
+{ #no parameters
+  if [[ ${#args[*]} == 0 ]]; then
+    echo "There is no parameters and no arguments";
+    exit;
+  fi
+
+  if [[ ${#args[*]} == 1 ]]; then #need to perform sed pattern in current directory
+    if test "${args[1]+isset}" ; then
+      changeAllSedNamesWithRecursion $PWD ${args[1]};
+    else
+      echo "ERROR --> give sed pattern not ${args[0]}";
+      exit;
+    fi
+  fi
+
+  if [[ ${#args[*]} == 2 ]]; then #need sed pattern and path to perform
+    changeAllSedNamesWithRecursion ${args[0]} ${args[1]};
+  fi
+}
+#<---------- GET ARGUMENTS ---------->
+
+function getArgs {
+    for (( i=0; i<${#all_args[*]}; i++ )); do
+        if [ ${all_args[i]} != '-r' ] && [ ${all_args[i]} != '-u' ] && [ ${all_args[i]} != '-l' ]; then
+            if [ -f ${all_args[i]} ] || [ -d ${all_args[i]} ]; then #if its file or dir
+                args[0]=${all_args[i]}; #storing path
+            elif [[ -n ${all_args[i]} ]]; then
+                args[1]=${all_args[i]}; #storing sed pattern
+            fi
+        fi
+    done            
+}
+
+# <----- HANDLING PARAMETERS ----->
+args=();
+param=( false false );
+
+while getopts "hrlu" opts; do
+    case "${opts}" in
+        \?)
+            echo "Wrong params. Please use [-r] [-l|-u] instead.";
+            exit
+            ;;
+        h) 
+            help;
+            exit
+            ;;
+        r)
+            param[0]='r';
+            ;;
+        l)
+            param[1]='l';
+            ;;
+        u)
+            param[1]='u';
+            ;;
+    esac
+done
+
+all_args=($*);
+getArgs;
+
+#<---------- DRIVER ---------->
+
+if [ ${param[0]} == false ] && [ ${param[1]} == false ]; then
+  #no parameters
+  sedCase;
+elif [ ${param[0]} != false ] && [ ${param[1]} != false ]; then
+  #two parameters, means -r -u or -r -l
+  normalCaseRecursion;
+else
+  #one param
+  if [ ${param[0]} == r ]; then
+    #recursion
+    sedCaseRecursion;
+  else
+    #option
+    normalCase;
+  fi
+fi
