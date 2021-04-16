@@ -28,6 +28,7 @@ int main()
 			kill(-1, SIGTERM); // terminating all the children. -1 means send SIGTERM to every process it has access to.
 			exit(1);
 		}
+		sleep(1);
 	}
     return 0;
 }
