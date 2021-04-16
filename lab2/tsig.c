@@ -30,6 +30,23 @@ int main()
 		}
 		sleep(1);
 	}
+
+	while(1)
+	{
+		pid_t s;
+		pid_t w = wait(&s); // wait() returns the process ID of terminated child or -1 on error.
+		if(w == -1) // if error, break the loop
+		{
+			break;
+		}
+		else // if not error, then w == child's pid.
+		{
+			printf("\nchild[%d]:\t\t process terminated.\n", w); // printing message that the child has been terminated
+			count++; // increasing count to then print out hte number of terminated processes
+		}
+	}
+
+	printf("\n\n\n%d processes were terminated\n", count); // printing the number of terminated processes
     return 0;
 }
 
