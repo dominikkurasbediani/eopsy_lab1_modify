@@ -5,9 +5,23 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define NUM_CHILD 2
+#define NUM_CHILD 5
 #define WITH_SIGNALS
 
+#ifdef WITH_SIGNALS // handling keyboardInterrupt and the print handler that prints message of the termination of the process
+	int interrupt_pressed = 0; // not bool because C does not support bools without stdbool.h
+
+	void keyboardInterrupt() // keyboard interrupt handler
+	{
+		interrupt_pressed = 1; // the global mark
+		printf("\n\tparent[%d]:\t\t Keyboard interrupt received.\n", getpid());
+	}
+
+	void printHandler()
+	{
+		printf("\nchild[%d]: Termination.", getpid());
+	}
+#endif
 
 int main()
 {
@@ -20,12 +34,19 @@ int main()
 	for(int i = 0; i < NUM_CHILD; i++)
 	{
 		#ifdef WITH_SIGNALS // focing ignoring off all the signals
-			for(int i = 0; i < NSIG; i++)
+			for(int i = 0; i < NSIG; i++) // NSIG = total number of signals
 				sigignore(i); // implementation in signals.h 
+			signal(SIGCHLD, SIG_DFL);
+			signal(SIGINT, keyboardInterrupt);
 		#endif
 
 		if(!(child_pid = fork())) // child_pid == 0, so child
 		{
+			#ifdef WITH_SIGNALS // using the print handler 
+				signal(SIGINT, printHandler);
+				signal(SIGINT, SIG_DFL);
+			#endif
+
 			printf("\n\tparent[%d]:\t\tcreated child[%d]\n", getppid(), getpid()); // printing ppid and pid of child
 			sleep(10); // sleeping for 10s
 			printf("\n\t\t\t\tchild[%d] completed execution.\n", getpid());
@@ -38,6 +59,15 @@ int main()
 			exit(1);
 		}
 		sleep(1);
+
+		#ifdef WITH_SIGNALS // killing the processes
+			if(interrupt_pressed)
+			{
+				printf("\n\tparent[%d]: \t\tChild creation interrupted.\n", getpid());
+				kill(-2, SIGTERM); // -2 < -1 so SIGTERM is sent to all the process group
+				break;
+			}
+		#endif
 	}
 
 	while(1)
@@ -61,7 +91,7 @@ int main()
 		for(int i = 0; i < NSIG; i++)
 			signal(i, SIG_DFL);
 	#endif
-		
+
     return 0;
 }
 
