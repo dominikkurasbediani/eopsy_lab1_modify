@@ -6,15 +6,24 @@
 #include <signal.h>
 
 #define NUM_CHILD 2
+#define WITH_SIGNALS
+
+
 int main()
 {
 	pid_t child_pid = 1; // child's pid
 	pid_t parent_pid = 1; // parent's pid
 	int count = 0; // counter
 
+
 	printf("parent[%d]:\n", getpid());
 	for(int i = 0; i < NUM_CHILD; i++)
 	{
+		#ifdef WITH_SIGNALS // focing ignoring off all the signals
+			for(int i = 0; i < NSIG; i++)
+				sigignore(i); // implementation in signals.h 
+		#endif
+
 		if(!(child_pid = fork())) // child_pid == 0, so child
 		{
 			printf("\n\tparent[%d]:\t\tcreated child[%d]\n", getppid(), getpid()); // printing ppid and pid of child
@@ -34,19 +43,25 @@ int main()
 	while(1)
 	{
 		pid_t s;
-		pid_t w = wait(&s); // wait() returns the process ID of terminated child or -1 on error.
-		if(w == -1) // if error, break the loop
+		pid_t w = wait(&s);
+		if(w == -1)
 		{
 			break;
 		}
-		else // if not error, then w == child's pid.
+		else
 		{
-			printf("\nchild[%d]:\t\t process terminated.\n", w); // printing message that the child has been terminated
-			count++; // increasing count to then print out hte number of terminated processes
+			printf("\nchild[%d]:\t\t process terminated.\n", w);
+			count++;
 		}
 	}
 
-	printf("\n\n\n%d processes were terminated\n", count); // printing the number of terminated processes
+	printf("\n\n\n%d processes were terminated\n", count);
+
+	#ifdef WITH_SIGNALS // restoring default signals
+		for(int i = 0; i < NSIG; i++)
+			signal(i, SIG_DFL);
+	#endif
+		
     return 0;
 }
 
