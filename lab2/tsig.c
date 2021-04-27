@@ -36,7 +36,7 @@ int main()
 		#ifdef WITH_SIGNALS // focing ignoring off all the signals
 			for(int i = 0; i < NSIG; i++) // NSIG = total number of signals
 				sigignore(i); // implementation in signals.h 
-			signal(SIGCHLD, SIG_DFL);
+			// signal(SIGCHLD, SIG_DFL);
 			signal(SIGINT, keyboardInterrupt);
 		#endif
 
