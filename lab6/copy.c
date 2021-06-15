@@ -50,7 +50,7 @@ int main (int argc, char **argv)
 			return 1;
 		}
 		// O_WRONLY mode is not sufficient when mmaping.
-		if ((fd_to = open(argv[optind+1], O_RDWR | O_CREAT | O_TRUNC, 0666)) < 0)
+		if ((fd_to = open(argv[optind+1], O_RDWR | O_CREAT | O_TRUNC)) < 0)
 		{
 			fprintf(stderr,"\nCan't open %s for writing!\n", argv[optind+1]);
 			return 1;
